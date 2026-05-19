@@ -7,6 +7,7 @@ export class AuthRepository extends BaseRepository {
       where: this.activeWhere({
         email,
       }),
+      include: { role: true },
     });
   }
 

@@ -3,7 +3,7 @@ import { jwt } from '@elysiajs/jwt';
 
 export const jwtPlugin = new Elysia().use(
   jwt({
-    name: 'accessToken',
+    name: 'accessJwt',
     secret: process.env.JWT_ACCESS_SECRET as string,
     exp: process.env.ACCESS_TOKEN_EXPIRES || '10m',
   }),
