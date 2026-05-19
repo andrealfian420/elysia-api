@@ -1,7 +1,6 @@
-import { PrismaClient } from '@/generated/prisma/client';
+import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-
-import { createSoftDeleteExtension } from 'prisma-extension-soft-delete';
+import { PrismaClient } from '../../generated/prisma/client';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -13,36 +12,20 @@ const adapter = new PrismaPg({
   connectionString,
 });
 
-const extendedPrisma = new PrismaClient({
-  adapter,
-  log: ['error'],
-}).$extends(
-  createSoftDeleteExtension({
-    models: {
-      // Add the models you want to use soft delete on here
-      User: true,
-      Role: true,
-    },
+const createPrismaClient = () =>
+  new PrismaClient({
+    adapter,
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'warn', 'error']
+        : ['error'],
+  });
 
-    defaultConfig: {
-      field: 'deletedAt',
-
-      createValue: (deleted) => {
-        if (deleted) {
-          return new Date();
-        }
-
-        return null;
-      },
-    },
-  }),
-);
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: typeof extendedPrisma;
+const globalForPrisma = globalThis as {
+  prisma?: PrismaClient;
 };
 
-export const prisma = globalForPrisma.prisma || extendedPrisma;
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
