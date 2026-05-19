@@ -15,6 +15,7 @@ datasource db {
 model Role {
   id          Int      @id @default(autoincrement())
   name        String   @unique
+  code        String?  @unique
   description String?
   access      String[]
   createdAt   DateTime @default(now()) @map("created_at")
@@ -28,18 +29,35 @@ model Role {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  email       String   @unique
-  password    String
-  name        String
-  roleId      Int      @map("role_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password      String
+  name          String
+  roleId        Int      @map("role_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deletedAt     DateTime? @map("deleted_at")
 
-  role        Role     @relation(fields: [roleId], references: [id])
+  role          Role     @relation(fields: [roleId], references: [id])
+  refreshTokens RefreshToken[]
 
   @@map("users")
   @@index([deletedAt])
   @@index([roleId])
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid())
+  userId       Int       @map("user_id")
+  userAgent    String?   @map("user_agent")
+  ipAddress    String?   @map("ip_address")
+  tokenHash    String    @unique @map("token_hash")
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+
+  @@index([userId])
 }

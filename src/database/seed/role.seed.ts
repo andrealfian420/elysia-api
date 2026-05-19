@@ -1,9 +1,11 @@
+import { ROLE_CODE } from '@/common/constants/role.constant';
 import { prisma } from '../prisma/prisma';
 
 export async function seedRoles() {
   const roles = [
     {
       name: 'Super Admin',
+      code: ROLE_CODE.SUPER_ADMIN,
       description: 'Full system access',
       access: [
         'module.master-data.user.index',
@@ -16,6 +18,12 @@ export async function seedRoles() {
         'module.master-data.role.delete',
       ],
     },
+    {
+      name: 'User',
+      code: ROLE_CODE.USER,
+      description: 'Limited access',
+      access: [],
+    },
   ];
 
   for (const role of roles) {
@@ -24,6 +32,7 @@ export async function seedRoles() {
         name: role.name,
       },
       update: {
+        code: role.code,
         description: role.description,
         access: role.access,
       },
