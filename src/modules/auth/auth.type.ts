@@ -5,6 +5,10 @@ export interface RegisterResponse {
 
 export interface LoginResponse {
   accessToken: string;
+}
+
+export interface LoginResult {
+  accessToken: string;
   refreshToken: string;
 }
 
@@ -14,5 +18,5 @@ export interface LoginContext {
 }
 
 export interface AccessJwt {
-  sign(payload: object): Promise<string> | string;
+  sign(payload: Record<string, unknown>): Promise<string>;
 }

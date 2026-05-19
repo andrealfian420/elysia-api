@@ -1,7 +1,7 @@
 import { compare, hash } from 'bcryptjs';
 import { AuthRepository } from './auth.repository';
 import { ROLE_CODE } from '@/common/constants/role.constant';
-import { AccessJwt, LoginContext, LoginResponse, RegisterResponse } from './auth.type';
+import { AccessJwt, LoginContext, LoginResponse, LoginResult, RegisterResponse } from './auth.type';
 import { LoginDto, RegisterDto } from './dto';
 import { generateToken, hashToken } from '@/common/utils/token';
 
@@ -38,7 +38,7 @@ export class AuthService {
     data: LoginDto,
     accessJwt: AccessJwt,
     context: LoginContext,
-  ): Promise<LoginResponse> {
+  ): Promise<LoginResult> {
     const user = await this.repository.findUserByEmail(data.email);
     if (!user) {
       throw new Error('Invalid email or password');
