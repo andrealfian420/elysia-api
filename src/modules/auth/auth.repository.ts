@@ -1,5 +1,6 @@
 import { BaseRepository } from '@/common/repositories/base.repository';
 import { Prisma, User, RefreshToken, Role } from '@/generated/prisma/client';
+import { RoleData } from './auth.type';
 
 export class AuthRepository extends BaseRepository {
   async findAuthUserById(
@@ -71,6 +72,21 @@ export class AuthRepository extends BaseRepository {
     await this.prisma.refreshToken.deleteMany({
       where: {
         userId,
+      },
+    });
+  }
+
+  async findRoleById(
+    id: number,
+  ): Promise<RoleData | null> {
+    return this.prisma.role.findFirst({
+      where: this.activeWhere({
+        id,
+      }),
+      select: {
+        id: true,
+        name: true,
+        access: true,
       },
     });
   }

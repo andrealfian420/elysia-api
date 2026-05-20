@@ -6,27 +6,30 @@ const repository = new AuthRepository();
 
 export const authPlugin = new Elysia()
   .use(jwtPlugin)
-  .derive(async ({ accessJwt, headers, error }) => {
+  .resolve(async ({ accessJwt, headers, status }) => {
     const authHeader = headers['authorization'];
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return error(401, 'Unauthorized');
+      throw status(401, 'Unauthorized');
     }
 
     const token = authHeader.replace('Bearer ', '');
     const payload = await accessJwt.verify(token);
 
     if (!payload) {
-      return error(401, 'Invalid token');
+      throw status(401, 'Invalid token');
     }
 
     const user = await repository.findAuthUserById(Number(payload.sub));
 
     if (!user) {
-      return error(401, 'User not found');
+      throw status(401, 'User not found');
     }
 
     return {
-      user: { id: user.id },
+      user: {
+        id: user.id,
+        roleId: user.roleId,
+      },
     };
   });

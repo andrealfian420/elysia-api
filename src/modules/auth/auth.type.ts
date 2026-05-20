@@ -20,3 +20,9 @@ export interface LoginContext {
 export interface AccessJwt {
   sign(payload: Record<string, unknown>): Promise<string>;
 }
+
+export interface RoleData {
+  id: number;
+  name: string;
+  access: string[];
+}
