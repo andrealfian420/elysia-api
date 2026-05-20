@@ -32,4 +32,26 @@ export class AuthRepository extends BaseRepository {
       }),
     });
   }
+
+  async findRefreshToken(
+    tokenHash: string,
+  ): Promise<RefreshToken | null> {
+    return this.prisma.refreshToken.findUnique({
+      where: {
+        tokenHash,
+      },
+
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  async deleteRefreshToken(tokenHash: string): Promise<void> {
+    await this.prisma.refreshToken.delete({
+      where: {
+        tokenHash,
+      },
+    });
+  }
 }

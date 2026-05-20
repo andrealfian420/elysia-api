@@ -1,9 +1,15 @@
 import { compare, hash } from 'bcryptjs';
 import { AuthRepository } from './auth.repository';
 import { ROLE_CODE } from '@/common/constants/role.constant';
-import { AccessJwt, LoginContext, LoginResponse, LoginResult, RegisterResponse } from './auth.type';
+import {
+  AccessJwt,
+  LoginContext,
+  LoginResult,
+  RegisterResponse,
+} from './auth.type';
 import { LoginDto, RegisterDto } from './dto';
 import { generateToken, hashToken } from '@/common/utils/token';
+import { refreshTokenExpiryDay } from '@/common/constants/auth.constants';
 
 export class AuthService {
   constructor(private readonly repository = new AuthRepository()) {}
@@ -56,9 +62,6 @@ export class AuthService {
 
     const refreshToken = generateToken();
     const hashedRefreshToken = hashToken(refreshToken);
-    const refreshTokenExpiryDay = Number(
-      process.env.REFRESH_TOKEN_EXPIRY_DAY ?? 7,
-    );
 
     await this.repository.createRefreshToken({
       tokenHash: hashedRefreshToken,
@@ -73,6 +76,47 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
+    };
+  }
+
+  async refresh(
+    refreshToken: string,
+    accessJwt: AccessJwt,
+  ): Promise<LoginResult> {
+    const tokenHash = hashToken(refreshToken);
+    const tokenRecord = await this.repository.findRefreshToken(tokenHash);
+
+    if (!tokenRecord) {
+      throw new Error('Invalid refresh token');
+    }
+
+    if (tokenRecord.expiresAt < new Date()) {
+      await this.repository.deleteRefreshToken(tokenHash);
+      throw new Error('Refresh token expired');
+    }
+
+      const accessToken = await accessJwt.sign({
+      sub: tokenRecord.userId,
+    });
+
+    const newRefreshToken = generateToken();
+    const hashedNewRefreshToken = hashToken(newRefreshToken);
+
+    await this.repository.createRefreshToken({
+      tokenHash: hashedNewRefreshToken,
+      userId: tokenRecord.userId,
+      userAgent: tokenRecord.userAgent,
+      ipAddress: tokenRecord.ipAddress,
+      expiresAt: new Date(
+        Date.now() + refreshTokenExpiryDay * 24 * 60 * 60 * 1000,
+      ),
+    });
+
+    await this.repository.deleteRefreshToken(tokenHash);
+
+    return {
+      accessToken,
+      refreshToken: newRefreshToken,
     };
   }
 }

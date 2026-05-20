@@ -1,3 +1,4 @@
+import { refreshTokenExpiryDay } from '@/common/constants/auth.constants';
 import { AuthService } from './auth.service';
 import { AccessJwt, LoginResponse, RegisterResponse } from './auth.type';
 import { LoginDto, RegisterDto } from './dto';
@@ -24,10 +25,6 @@ export class AuthController {
       ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
     });
 
-    const refreshTokenExpiryDay = Number(
-      process.env.REFRESH_TOKEN_EXPIRY_DAY ?? 7,
-    );
-
     cookie.refreshToken.set({
       value: result.refreshToken,
       httpOnly: true,
@@ -48,5 +45,34 @@ export class AuthController {
     body: RegisterDto;
   }): Promise<RegisterResponse> => {
     return this.service.register(body);
+  };
+
+  refresh = async ({
+    cookie,
+    accessJwt,
+  }: {
+    cookie: Record<string, any>;
+    accessJwt: AccessJwt;
+  }): Promise<LoginResponse> => {
+    const refreshToken = cookie.refreshToken.value;
+
+    if (!refreshToken) {
+      throw new Error('Refresh token missing.');
+    }
+
+    const result = await this.service.refresh(refreshToken, accessJwt);
+
+    cookie.refreshToken.set({
+      value: result.refreshToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * refreshTokenExpiryDay,
+      path: '/',
+    });
+
+    return {
+      accessToken: result.accessToken,
+    };
   };
 }
