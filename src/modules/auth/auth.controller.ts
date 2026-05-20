@@ -39,6 +39,36 @@ export class AuthController {
     };
   };
 
+  logout = async ({
+    cookie,
+  }: {
+    cookie: Record<string, any>;
+  }): Promise<void> => {
+    const refreshToken = cookie.refreshToken.value;
+
+    if (!refreshToken) {
+      throw new Error('Refresh token missing.');
+    }
+
+    await this.service.logout(refreshToken);
+    cookie.refreshToken.remove();
+
+    return;
+  };
+
+  logoutAll = async ({
+    user,
+    cookie,
+  }: {
+    user: { id: number };
+    cookie: Record<string, any>;
+  }): Promise<void> => {
+    await this.service.logoutAll(user.id);
+    cookie.refreshToken.remove();
+
+    return;
+  };
+
   register = async ({
     body,
   }: {

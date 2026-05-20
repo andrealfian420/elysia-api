@@ -2,6 +2,20 @@ import { BaseRepository } from '@/common/repositories/base.repository';
 import { Prisma, User, RefreshToken, Role } from '@/generated/prisma/client';
 
 export class AuthRepository extends BaseRepository {
+  async findAuthUserById(
+    id: number,
+  ): Promise<{ id: number; roleId: number } | null> {
+    return this.prisma.user.findFirst({
+      where: this.activeWhere({
+        id,
+      }),
+      select: {
+        id: true,
+        roleId: true,
+      },
+    });
+  }
+
   async findUserByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findFirst({
       where: this.activeWhere({
@@ -33,9 +47,7 @@ export class AuthRepository extends BaseRepository {
     });
   }
 
-  async findRefreshToken(
-    tokenHash: string,
-  ): Promise<RefreshToken | null> {
+  async findRefreshToken(tokenHash: string): Promise<RefreshToken | null> {
     return this.prisma.refreshToken.findUnique({
       where: {
         tokenHash,
@@ -48,9 +60,17 @@ export class AuthRepository extends BaseRepository {
   }
 
   async deleteRefreshToken(tokenHash: string): Promise<void> {
-    await this.prisma.refreshToken.delete({
+    await this.prisma.refreshToken.deleteMany({
       where: {
         tokenHash,
+      },
+    });
+  }
+
+  async deleteUserRefreshTokens(userId: number): Promise<void> {
+    await this.prisma.refreshToken.deleteMany({
+      where: {
+        userId,
       },
     });
   }

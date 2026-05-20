@@ -16,4 +16,6 @@ export const authRoute = new Elysia({
   .post('/register', authController.register, {
     body: registerDto,
   })
-  .post('/refresh', authController.refresh);
+  .post('/refresh', authController.refresh)
+  .post('/logout', authController.logout)
+  .post('/logout-all', authController.logoutAll);

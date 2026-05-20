@@ -57,7 +57,7 @@ export class AuthService {
     }
 
     const accessToken = await accessJwt.sign({
-      sub: user.id,
+      sub: user.id.toString(),
     });
 
     const refreshToken = generateToken();
@@ -79,6 +79,15 @@ export class AuthService {
     };
   }
 
+  async logout(refreshToken: string): Promise<void> {
+    const tokenHash = hashToken(refreshToken);
+    await this.repository.deleteRefreshToken(tokenHash);
+  }
+
+  async logoutAll(userId: number): Promise<void> {
+    await this.repository.deleteUserRefreshTokens(userId);
+  }
+
   async refresh(
     refreshToken: string,
     accessJwt: AccessJwt,
@@ -96,7 +105,7 @@ export class AuthService {
     }
 
       const accessToken = await accessJwt.sign({
-      sub: tokenRecord.userId,
+      sub: tokenRecord.userId.toString(),
     });
 
     const newRefreshToken = generateToken();
