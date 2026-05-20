@@ -1,11 +1,11 @@
 import { AuthService } from './auth.service';
-import { AccessJwt, LoginResponse } from './auth.type';
-import { LoginDto } from './dto';
+import { AccessJwt, LoginResponse, RegisterResponse } from './auth.type';
+import { LoginDto, RegisterDto } from './dto';
 
 export class AuthController {
   constructor(private readonly service = new AuthService()) {}
 
-  login = async({
+  login = async ({
     body,
     accessJwt,
     cookie,
@@ -40,5 +40,13 @@ export class AuthController {
     return {
       accessToken: result.accessToken,
     };
-  }
+  };
+
+  register = async ({
+    body,
+  }: {
+    body: RegisterDto;
+  }): Promise<RegisterResponse> => {
+    return this.service.register(body);
+  };
 }
