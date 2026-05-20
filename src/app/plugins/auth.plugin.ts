@@ -6,7 +6,7 @@ const repository = new AuthRepository();
 
 export const authPlugin = new Elysia()
   .use(jwtPlugin)
-  .resolve(async ({ accessJwt, headers, status }) => {
+  .resolve({ as: 'scoped' }, async ({ accessJwt, headers, status }) => {
     const authHeader = headers['authorization'];
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
