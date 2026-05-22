@@ -2,6 +2,7 @@ import { refreshTokenExpiryDay } from '@/common/constants/auth.constants';
 import { AuthService } from './auth.service';
 import { AccessJwt, LoginResponse, RegisterResponse } from './auth.type';
 import { LoginDto, RegisterDto } from './dto';
+import { AppError } from '@/common/errors/app-error';
 
 export class AuthController {
   constructor(private readonly service = new AuthService()) {}
@@ -47,7 +48,7 @@ export class AuthController {
     const refreshToken = cookie.refreshToken.value;
 
     if (!refreshToken) {
-      throw new Error('Refresh token missing.');
+      throw new AppError(400, 'Refresh token missing.');
     }
 
     await this.service.logout(refreshToken);
@@ -87,7 +88,7 @@ export class AuthController {
     const refreshToken = cookie.refreshToken.value;
 
     if (!refreshToken) {
-      throw new Error('Refresh token missing.');
+      throw new AppError(400, 'Refresh token missing.');
     }
 
     const result = await this.service.refresh(refreshToken, accessJwt);

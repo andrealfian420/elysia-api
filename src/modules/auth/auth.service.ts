@@ -10,6 +10,7 @@ import {
 import { LoginDto, RegisterDto } from './dto';
 import { generateToken, hashToken } from '@/common/utils/token';
 import { refreshTokenExpiryDay } from '@/common/constants/auth.constants';
+import { AppError } from '@/common/errors/app-error';
 
 export class AuthService {
   constructor(private readonly repository = new AuthRepository()) {}
@@ -17,12 +18,12 @@ export class AuthService {
   async register(data: RegisterDto): Promise<RegisterResponse> {
     const existingUser = await this.repository.findUserByEmail(data.email);
     if (existingUser) {
-      throw new Error('Email already in use');
+      throw new AppError(400, 'Email already in use');
     }
 
     const memberRole = await this.repository.findByRoleCode(ROLE_CODE.USER);
     if (!memberRole) {
-      throw new Error('Default role not found');
+      throw new AppError(404, 'Default role not found');
     }
 
     const bcryptSaltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
@@ -47,13 +48,13 @@ export class AuthService {
   ): Promise<LoginResult> {
     const user = await this.repository.findUserByEmail(data.email);
     if (!user) {
-      throw new Error('Invalid email or password');
+      throw new AppError(400, 'Invalid email or password');
     }
 
     const isValid = await compare(data.password, user.password);
 
     if (!isValid) {
-      throw new Error('Invalid email or password');
+      throw new AppError(400, 'Invalid email or password');
     }
 
     const accessToken = await accessJwt.sign({
@@ -96,12 +97,12 @@ export class AuthService {
     const tokenRecord = await this.repository.findRefreshToken(tokenHash);
 
     if (!tokenRecord) {
-      throw new Error('Invalid refresh token');
+      throw new AppError(400, 'Invalid refresh token');
     }
 
     if (tokenRecord.expiresAt < new Date()) {
       await this.repository.deleteRefreshToken(tokenHash);
-      throw new Error('Refresh token expired');
+      throw new AppError(400, 'Refresh token expired');
     }
 
       const accessToken = await accessJwt.sign({
