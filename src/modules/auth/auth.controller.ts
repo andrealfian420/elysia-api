@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { AccessJwt, LoginResponse, RegisterResponse } from './auth.type';
 import { LoginDto, RegisterDto } from './dto';
 import { AppError } from '@/common/errors/app-error';
+import { ApiResponse, response } from '@/common/helpers/response.helper';
 
 export class AuthController {
   constructor(private readonly service = new AuthService()) {}
@@ -19,7 +20,7 @@ export class AuthController {
     cookie: Record<string, any>;
     headers: Record<string, string | undefined>;
     request: Request;
-  }): Promise<LoginResponse> => {
+  }): Promise<ApiResponse<LoginResponse>> => {
     const result = await this.service.login(body, accessJwt, {
       userAgent: headers['user-agent'],
 
@@ -35,16 +36,20 @@ export class AuthController {
       path: '/',
     });
 
-    return {
-      accessToken: result.accessToken,
-    };
+    return response({
+      success: true,
+      message: 'Login successful',
+      data: {
+        accessToken: result.accessToken,
+      },
+    });
   };
 
   logout = async ({
     cookie,
   }: {
     cookie: Record<string, any>;
-  }): Promise<void> => {
+  }): Promise<ApiResponse<void>> => {
     const refreshToken = cookie.refreshToken.value;
 
     if (!refreshToken) {
@@ -54,7 +59,10 @@ export class AuthController {
     await this.service.logout(refreshToken);
     cookie.refreshToken.remove();
 
-    return;
+    return response({
+      success: true,
+      message: 'Logout successful',
+    });
   };
 
   logoutAll = async ({
@@ -63,19 +71,27 @@ export class AuthController {
   }: {
     user: { id: number };
     cookie: Record<string, any>;
-  }): Promise<void> => {
+  }): Promise<ApiResponse<void>> => {
     await this.service.logoutAll(user.id);
     cookie.refreshToken.remove();
 
-    return;
+    return response({
+      success: true,
+      message: 'Success logout from all devices',
+    });
   };
 
   register = async ({
     body,
   }: {
     body: RegisterDto;
-  }): Promise<RegisterResponse> => {
-    return this.service.register(body);
+  }): Promise<ApiResponse<RegisterResponse>> => {
+    const result = await this.service.register(body);
+    return response({
+      success: true,
+      message: 'Registration successful',
+      data: result,
+    });
   };
 
   refresh = async ({
@@ -84,7 +100,7 @@ export class AuthController {
   }: {
     cookie: Record<string, any>;
     accessJwt: AccessJwt;
-  }): Promise<LoginResponse> => {
+  }): Promise<ApiResponse<LoginResponse>> => {
     const refreshToken = cookie.refreshToken.value;
 
     if (!refreshToken) {
@@ -102,8 +118,12 @@ export class AuthController {
       path: '/',
     });
 
-    return {
-      accessToken: result.accessToken,
-    };
+    return response({
+      success: true,
+      message: 'Token refreshed successfully',
+      data: {
+        accessToken: result.accessToken,
+      },
+    });
   };
 }
