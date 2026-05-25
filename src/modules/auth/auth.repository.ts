@@ -1,12 +1,14 @@
 import { BaseRepository } from '@/common/repositories/base.repository';
 import { Prisma, User, RefreshToken, Role } from '@/generated/prisma/client';
 import { RoleData } from './auth.type';
+import { PrismaTx } from '@/common/types/prisma';
 
 export class AuthRepository extends BaseRepository {
   async findAuthUserById(
     id: number,
+    tx?: PrismaTx,
   ): Promise<{ id: number; roleId: number } | null> {
-    return this.prisma.user.findFirst({
+    return this.db(tx).user.findFirst({
       where: this.activeWhere({
         id,
       }),
@@ -17,8 +19,8 @@ export class AuthRepository extends BaseRepository {
     });
   }
 
-  async findUserByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findFirst({
+  async findUserByEmail(email: string, tx?: PrismaTx): Promise<User | null> {
+    return this.db(tx).user.findFirst({
       where: this.activeWhere({
         email,
       }),
@@ -26,30 +28,37 @@ export class AuthRepository extends BaseRepository {
     });
   }
 
-  async createUser(data: Prisma.UserUncheckedCreateInput): Promise<User> {
-    return this.prisma.user.create({
+  async createUser(
+    data: Prisma.UserUncheckedCreateInput,
+    tx?: PrismaTx,
+  ): Promise<User> {
+    return this.db(tx).user.create({
       data,
     });
   }
 
   async createRefreshToken(
     data: Prisma.RefreshTokenUncheckedCreateInput,
+    tx?: PrismaTx,
   ): Promise<RefreshToken> {
-    return await this.prisma.refreshToken.create({
+    return this.db(tx).refreshToken.create({
       data,
     });
   }
 
-  async findByRoleCode(code: string): Promise<Role | null> {
-    return this.prisma.role.findFirst({
+  async findByRoleCode(code: string, tx?: PrismaTx): Promise<Role | null> {
+    return this.db(tx).role.findFirst({
       where: this.activeWhere({
         code,
       }),
     });
   }
 
-  async findRefreshToken(tokenHash: string): Promise<RefreshToken | null> {
-    return this.prisma.refreshToken.findUnique({
+  async findRefreshToken(
+    tokenHash: string,
+    tx?: PrismaTx,
+  ): Promise<RefreshToken | null> {
+    return this.db(tx).refreshToken.findUnique({
       where: {
         tokenHash,
       },
@@ -60,26 +69,24 @@ export class AuthRepository extends BaseRepository {
     });
   }
 
-  async deleteRefreshToken(tokenHash: string): Promise<void> {
-    await this.prisma.refreshToken.deleteMany({
+  async deleteRefreshToken(tokenHash: string, tx?: PrismaTx): Promise<void> {
+    await this.db(tx).refreshToken.deleteMany({
       where: {
         tokenHash,
       },
     });
   }
 
-  async deleteUserRefreshTokens(userId: number): Promise<void> {
-    await this.prisma.refreshToken.deleteMany({
+  async deleteUserRefreshTokens(userId: number, tx?: PrismaTx): Promise<void> {
+    await this.db(tx).refreshToken.deleteMany({
       where: {
         userId,
       },
     });
   }
 
-  async findRoleById(
-    id: number,
-  ): Promise<RoleData | null> {
-    return this.prisma.role.findFirst({
+  async findRoleById(id: number, tx?: PrismaTx): Promise<RoleData | null> {
+    return this.db(tx).role.findFirst({
       where: this.activeWhere({
         id,
       }),

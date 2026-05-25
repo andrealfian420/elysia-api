@@ -1,19 +1,22 @@
 import { prisma } from '@/database/prisma/prisma';
+import { PrismaTx } from '../types/prisma';
 
 // BaseRepository is an abstract class that provides common functionality for all repositories in the application.
 export abstract class BaseRepository {
-  protected prisma = prisma;
+  protected db(tx?: PrismaTx) {
+    return tx ?? prisma;
+  }
 
-  protected activeWhere<T>(where: T): T {
+  protected activeWhere<T extends object>(where?: T) {
     return {
-      ...where,
+      ...(where ?? {}),
       deletedAt: null,
     };
   }
 
-  protected softDeleteData<T>(data: T): T {
+  protected softDeleteData<T extends object>(data?: T) {
     return {
-      ...data,
+      ...(data ?? {}),
       deletedAt: new Date(),
     };
   }

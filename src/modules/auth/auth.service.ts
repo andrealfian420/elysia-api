@@ -11,34 +11,40 @@ import { LoginDto, RegisterDto } from './dto';
 import { generateToken, hashToken } from '@/common/utils/token';
 import { refreshTokenExpiryDay } from '@/common/constants/auth.constants';
 import { AppError } from '@/common/errors/app-error';
+import { prisma } from '@/database/prisma/prisma';
 
 export class AuthService {
   constructor(private readonly repository = new AuthRepository()) {}
 
   async register(data: RegisterDto): Promise<RegisterResponse> {
-    const existingUser = await this.repository.findUserByEmail(data.email);
-    if (existingUser) {
-      throw new AppError(400, 'Email already in use');
-    }
+    return await prisma.$transaction(async (tx) => {
+      const existingUser = await this.repository.findUserByEmail(data.email);
+      if (existingUser) {
+        throw new AppError(400, 'Email already in use');
+      }
 
-    const memberRole = await this.repository.findByRoleCode(ROLE_CODE.USER);
-    if (!memberRole) {
-      throw new AppError(404, 'Default role not found');
-    }
+      const memberRole = await this.repository.findByRoleCode(ROLE_CODE.USER);
+      if (!memberRole) {
+        throw new AppError(404, 'Default role not found');
+      }
 
-    const bcryptSaltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
-    const hashedPassword = await hash(data.password, bcryptSaltRounds);
+      const bcryptSaltRounds = Number(process.env.BCRYPT_SALT_ROUNDS ?? 10);
+      const hashedPassword = await hash(data.password, bcryptSaltRounds);
 
-    const user = await this.repository.createUser({
-      ...data,
-      password: hashedPassword,
-      roleId: memberRole.id,
+      const user = await this.repository.createUser(
+        {
+          ...data,
+          password: hashedPassword,
+          roleId: memberRole.id,
+        },
+        tx,
+      );
+
+      return {
+        email: user.email,
+        name: user.name,
+      };
     });
-
-    return {
-      email: user.email,
-      name: user.name,
-    };
   }
 
   async login(
@@ -93,40 +99,45 @@ export class AuthService {
     refreshToken: string,
     accessJwt: AccessJwt,
   ): Promise<LoginResult> {
-    const tokenHash = hashToken(refreshToken);
-    const tokenRecord = await this.repository.findRefreshToken(tokenHash);
+    return await prisma.$transaction(async (tx) => {
+      const tokenHash = hashToken(refreshToken);
+      const tokenRecord = await this.repository.findRefreshToken(tokenHash);
 
-    if (!tokenRecord) {
-      throw new AppError(400, 'Invalid refresh token');
-    }
+      if (!tokenRecord) {
+        throw new AppError(400, 'Invalid refresh token');
+      }
 
-    if (tokenRecord.expiresAt < new Date()) {
-      await this.repository.deleteRefreshToken(tokenHash);
-      throw new AppError(400, 'Refresh token expired');
-    }
+      if (tokenRecord.expiresAt < new Date()) {
+        await this.repository.deleteRefreshToken(tokenHash, tx);
+        throw new AppError(400, 'Refresh token expired');
+      }
 
       const accessToken = await accessJwt.sign({
-      sub: tokenRecord.userId.toString(),
+        sub: tokenRecord.userId.toString(),
+      });
+
+      const newRefreshToken = generateToken();
+      const hashedNewRefreshToken = hashToken(newRefreshToken);
+
+      await this.repository.createRefreshToken(
+        {
+          tokenHash: hashedNewRefreshToken,
+          userId: tokenRecord.userId,
+          userAgent: tokenRecord.userAgent,
+          ipAddress: tokenRecord.ipAddress,
+          expiresAt: new Date(
+            Date.now() + refreshTokenExpiryDay * 24 * 60 * 60 * 1000,
+          ),
+        },
+        tx,
+      );
+
+      await this.repository.deleteRefreshToken(tokenHash, tx);
+
+      return {
+        accessToken,
+        refreshToken: newRefreshToken,
+      };
     });
-
-    const newRefreshToken = generateToken();
-    const hashedNewRefreshToken = hashToken(newRefreshToken);
-
-    await this.repository.createRefreshToken({
-      tokenHash: hashedNewRefreshToken,
-      userId: tokenRecord.userId,
-      userAgent: tokenRecord.userAgent,
-      ipAddress: tokenRecord.ipAddress,
-      expiresAt: new Date(
-        Date.now() + refreshTokenExpiryDay * 24 * 60 * 60 * 1000,
-      ),
-    });
-
-    await this.repository.deleteRefreshToken(tokenHash);
-
-    return {
-      accessToken,
-      refreshToken: newRefreshToken,
-    };
   }
 }
